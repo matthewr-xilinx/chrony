@@ -52,6 +52,7 @@
 #include "pktlength.h"
 #include "clientlog.h"
 #include "refclock.h"
+#include "sys.h"
 
 /* ================================================== */
 
@@ -144,6 +145,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* SELECT_DATA */
   PERMIT_AUTH, /* RELOAD_SOURCES */
   PERMIT_AUTH, /* DOFFSET2 */
+  PERMIT_AUTH, /* CLOCKCONTROL */
 };
 
 /* ================================================== */
@@ -1361,6 +1363,31 @@ handle_select_data(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static void
+handle_clockcontrol(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  int option;
+  uint32_t flags;
+
+  option = ntohl(rx_message->data.clockcontrol.option);
+  switch (option) {
+  case REQ_CLOCKCONTROL_SHOW:
+    DEBUG_LOG("Received 'clockcontrol show' request");
+    break;
+  default:
+    tx_message->status = htons(STT_INVALID);
+    break;
+  }
+
+  flags = 0;
+  flags |= SYS_IsClockControl() ? RPY_CC_FLAG_CURRENT : 0;
+
+  tx_message->reply  = htons(RPY_CLOCKCONTROL);
+  tx_message->data.clockcontrol.flags = htonl(flags);
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
@@ -1752,6 +1779,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_RELOAD_SOURCES:
           handle_reload_sources(&rx_message, &tx_message);
+          break;
+
+        case REQ_CLOCKCONTROL:
+          handle_clockcontrol(&rx_message, &tx_message);
           break;
 
         default:

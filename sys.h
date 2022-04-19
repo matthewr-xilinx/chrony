@@ -50,4 +50,5 @@ extern void SYS_EnableSystemCallFilter(int level, SYS_ProcessContext context);
 extern void SYS_SetScheduler(int SchedPriority);
 extern void SYS_LockMemory(void);
 
+extern int SYS_IsClockControl(void);
 #endif /* GOT_SYS_H */

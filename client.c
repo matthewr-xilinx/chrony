@@ -1006,6 +1006,7 @@ give_help(void)
     "maxupdateskew <skew>\0Modify maximum valid skew to update frequency\0"
     "waitsync [<max-tries> [<max-correction> [<max-skew> [<interval>]]]]\0"
                           "Wait until synchronised in specified limits\0"
+    "clockcontrol show\0Display current clock control status\0"
     "\0\0"
     "Time sources:\0\0"
     "sources [-a] [-v]\0Display information about current sources\0"
@@ -1109,6 +1110,7 @@ enum {
   TAB_COMPLETE_SOURCESTATS_OPTS,
   TAB_COMPLETE_AUTHDATA_OPTS,
   TAB_COMPLETE_SELECTDATA_OPTS,
+  TAB_COMPLETE_CLOCKCONTROL_OPTS,
   TAB_COMPLETE_MAX_INDEX
 };
 
@@ -1120,7 +1122,7 @@ command_name_generator(const char *text, int state)
   const char *name, **names[TAB_COMPLETE_MAX_INDEX];
   const char *base_commands[] = {
     "accheck", "activity", "add", "allow", "authdata", "burst",
-    "clients", "cmdaccheck", "cmdallow", "cmddeny", "cyclelogs", "delete",
+    "clients", "clockcontrol", "cmdaccheck", "cmdallow", "cmddeny", "cyclelogs", "delete",
     "deny", "dns", "dump", "exit", "help", "keygen", "local", "makestep",
     "manual", "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
     "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online", "onoffline",
@@ -1134,6 +1136,7 @@ command_name_generator(const char *text, int state)
   const char *manual_options[] = { "on", "off", "delete", "list", "reset", NULL };
   const char *reset_options[] = { "sources", NULL };
   const char *reload_options[] = { "sources", NULL };
+  const char *clockcontrol_options[] = { "show", NULL };
   const char *common_source_options[] = { "-a", "-v", NULL };
   static int list_index, len;
 
@@ -1146,6 +1149,7 @@ command_name_generator(const char *text, int state)
   names[TAB_COMPLETE_SELECTDATA_OPTS] = common_source_options;
   names[TAB_COMPLETE_SOURCES_OPTS] = common_source_options;
   names[TAB_COMPLETE_SOURCESTATS_OPTS] = common_source_options;
+  names[TAB_COMPLETE_CLOCKCONTROL_OPTS] = clockcontrol_options;
 
   if (!state) {
     list_index = 0;
@@ -1187,6 +1191,8 @@ command_name_completion(const char *text, int start, int end)
     tab_complete_index = TAB_COMPLETE_SOURCES_OPTS;
   } else if (!strcmp(first, "sourcestats ")) {
     tab_complete_index = TAB_COMPLETE_SOURCESTATS_OPTS;
+  } else if (!strcmp(first, "clockcontrol ")) {
+    tab_complete_index = TAB_COMPLETE_CLOCKCONTROL_OPTS;
   } else if (first[0] == '\0') {
     tab_complete_index = TAB_COMPLETE_BASE_CMDS;
   } else {
@@ -2669,6 +2675,37 @@ process_cmd_clients(char *line)
 
 
 /* ================================================== */
+/* Process the clockcontrol command */
+static int
+process_cmd_clockcontrol(const char *line)
+{
+  const char *p;
+  CMD_Request request;
+  CMD_Reply reply;
+  uint32_t flags;
+
+  p = line;
+
+  if (!strcmp(p, "show")) {
+    request.data.clockcontrol.option = htonl(REQ_CLOCKCONTROL_SHOW);
+  } else  {
+    LOG(LOGS_ERR, "Invalid syntax for clockcontrol command");
+    return 0;
+  }
+  request.command = htons(REQ_CLOCKCONTROL);
+
+  if (!request_reply(&request, &reply, RPY_CLOCKCONTROL, 1))
+    return 0;
+
+  flags = ntohl(reply.data.clockcontrol.flags);
+  print_report("Current clock control  : %s\n",
+               flags & RPY_CC_FLAG_CURRENT ? "enabled" : "disabled",
+               REPORT_END);
+  return 1;
+}
+
+
+/* ================================================== */
 /* Process the manual list command */
 static int
 process_cmd_manual_list(const char *line)
@@ -3091,6 +3128,9 @@ process_line(char *line)
     ret = process_cmd_authdata(line);
   } else if (!strcmp(command, "burst")) {
     do_normal_submit = process_cmd_burst(&tx_message, line);
+  } else if (!strcmp(command, "clockcontrol")) {
+    do_normal_submit = 0;
+    ret = process_cmd_clockcontrol(line);
   } else if (!strcmp(command, "clients")) {
     ret = process_cmd_clients(line);
     do_normal_submit = 0;

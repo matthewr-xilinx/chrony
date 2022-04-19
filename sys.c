@@ -148,3 +148,8 @@ void SYS_LockMemory(void)
 }
 
 /* ================================================== */
+int SYS_IsClockControl(void)
+{
+  return !null_driver;
+}
+/* ================================================== */

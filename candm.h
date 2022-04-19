@@ -109,7 +109,8 @@
 #define REQ_SELECT_DATA 69
 #define REQ_RELOAD_SOURCES 70
 #define REQ_DOFFSET2 71
-#define N_REQUEST_TYPES 72
+#define REQ_CLOCKCONTROL 72
+#define N_REQUEST_TYPES 73
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
@@ -252,6 +253,14 @@ typedef struct {
   IPAddr ip;
   int32_t EOR;
 } REQ_Ac_Check;
+
+/* Options for Clock Control requests */
+#define REQ_CLOCKCONTROL_SHOW 0
+
+typedef struct {
+  int32_t option;
+  int32_t EOR;
+} REQ_ClockControl;
 
 /* Source types in NTP source requests */
 #define REQ_ADDSRC_SERVER 1
@@ -409,7 +418,7 @@ typedef struct {
    (two times), delta offset, and manual timestamp, added new fields and
    flags to NTP source request and report, made length of manual list constant,
    added new commands: authdata, ntpdata, onoffline, refresh, reset,
-   selectdata, serverstats, shutdown, sourcename
+   selectdata, serverstats, shutdown, sourcename, clockcontrol
  */
 
 #define PROTO_VERSION_NUMBER 6
@@ -476,6 +485,7 @@ typedef struct {
     REQ_NTPSourceName ntp_source_name;
     REQ_AuthData auth_data;
     REQ_SelectData select_data;
+    REQ_ClockControl clockcontrol;
   } data; /* Command specific parameters */
 
   /* Padding used to prevent traffic amplification.  It only defines the
@@ -518,7 +528,8 @@ typedef struct {
 #define RPY_SERVER_STATS2 22
 #define RPY_SELECT_DATA 23
 #define RPY_SERVER_STATS3 24
-#define N_REPLY_TYPES 25
+#define RPY_CLOCKCONTROL 25
+#define N_REPLY_TYPES 26
 
 /* Status codes */
 #define STT_SUCCESS 0
@@ -781,6 +792,13 @@ typedef struct {
   int32_t EOR;
 } RPY_SelectData;
 
+#define RPY_CC_FLAG_CURRENT 0x1
+
+typedef struct {
+  uint32_t flags;
+  int32_t EOR;
+} RPY_ClockControl;
+
 typedef struct {
   uint8_t version;
   uint8_t pkt_type;
@@ -813,6 +831,7 @@ typedef struct {
     RPY_NTPSourceName ntp_source_name;
     RPY_AuthData auth_data;
     RPY_SelectData select_data;
+    RPY_ClockControl clockcontrol;
   } data; /* Reply specific parameters */
 
 } CMD_Reply;
